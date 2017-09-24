@@ -1,27 +1,12 @@
-/* WiFi Example
- * Copyright (c) 2016 ARM Limited
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #include "mbed.h"
-#include "TCPSocket.h"
 #include "MXCHIPInterface.h"
 #include "sht2x.h"
 #include "http_request.h"
 
+#define HOST_URL "http://192.168.0.252:8080/send"
+
 MXCHIPInterface wifi(D10,D2);
-Serial pc(STDIO_UART_TX,STDIO_UART_RX,115200);
+Serial pc(STDIO_UART_TX,STDIO_UART_RX, 115200);
 SHT2x sht20(I2C_SDA, I2C_SCL);
 
 int rh, temp;
@@ -30,64 +15,20 @@ float relHumidity, temperature;
 int userRegister;
 
 
-void http_demo(NetworkInterface *net)
+void set_sensor()
+
 {
-    TCPSocket socket;
-    nsapi_error_t response;
-
-    printf("Sending HTTP request\r\n");
-
-    // Open a socket on the network interface, and create a TCP connection to www.arm.com
-    socket.open(net);
-    response = socket.connect("192.168.0.104", 8080);
-    if(0 != response) {
-        printf("Error connecting: %d\r\n", response);
-        socket.close();
-        return;
-    }
-
-    // Send a simple http request
-    char sbuffer[] = "GET / HTTP/1.1\r\nHost: 192.168.0.104\r\n\r\n";
-    nsapi_size_t size = sizeof sbuffer;
-    response = 0;
-    while(size)
-    {
-        response = socket.send(sbuffer+response, size);
-        if (response < 0) {
-            printf("Error sending data: %d\r\n", response);
-            socket.close();
-            return;
-        } else {
-            size -= response;
-            // Check if entire message was sent or not
-            printf("sent %d [%.*s]\r\n", response, strstr(sbuffer, "\r\n")-sbuffer, sbuffer);
-        }
-    }
-
-    // Recieve a simple http response and print out the response line
-    char rbuffer[2000];
-    response = socket.recv(rbuffer, sizeof rbuffer);
-    if (response < 0) {
-        printf("Error receiving data: %d\r\n", response);
-    } else {
-        // printf("recv %d [%.*s]\r\n", response, strstr(rbuffer, "\r\n")-rbuffer, rbuffer);
-        printf("%s\r\n", rbuffer);
-    }
-
-    // Close the socket to return its memory and bring down the network interface
-    socket.close();
-}
-
-void measure()
-{
-    int err = 0;
-
     sht20.softReset();
 
     printf("Setting user register...\r\n");
     err |= sht20.readUserRegister(&userRegister);  //get actual user reg
     userRegister = (userRegister & ~SHT2x_RES_MASK) | SHT2x_RES_12_14BIT;
     err |= sht20.writeUserRegister(&userRegister); //write changed user reg 
+}
+
+void measure()
+{
+    int err = 0;
     
     printf("Start sensing...\r\n");
     err |= sht20.measureHM(HUMIDITY, &rh);
@@ -111,18 +52,17 @@ void sendHttp(NetworkInterface *network)
     std::sprintf(body, "{\"humidity\":%f,\"temperature\":%f}", relHumidity, temperature);
 
     // char body[] = "{\"humidity\":\"\", \"temperature\":}";
-    HttpRequest* request = new HttpRequest(network, HTTP_GET, "http://192.168.0.104:8080");
+    HttpRequest* request = new HttpRequest(network, HTTP_GET, HOST_URL);
     request->set_header("Content-Type", "application/json");
+    printf("Sending request...\r\n");
     HttpResponse* response = request->send(body, strlen(body));
     printf("status is %d - %s\r\n", response->get_status_code(), response->get_status_message());
-    printf("body is:%s\r\n", response->get_body_as_string().c_str());
+    printf("body is:\r\n%s\r\n", response->get_body_as_string().c_str());
 }
 
 int main()
 {
-    printf("WiFi example\r\n");
-
-    printf("Connecting...\r\n");
+    printf("Connecting wifi...\r\n");
     int ret = wifi.connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD, NSAPI_SECURITY_WPA_WPA2);
     if (ret != 0) {
         printf("\r\nConnection error\r\n");
@@ -135,11 +75,14 @@ int main()
     // printf("Netmask: %s\r\n", wifi.get_netmask());
     // printf("Gateway: %s\r\n", wifi.get_gateway());
     // printf("RSSI: %d\r\n\r\n", wifi.get_rssi());
+    set_sensor();
 
-    measure();
 
-    // http_demo(&wifi);
-    sendHttp(&wifi);
+    while(1){
+        measure();
+        sendHttp(&wifi);
+        wait(5);
+    }
 
     wifi.disconnect();
 

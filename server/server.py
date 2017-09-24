@@ -8,16 +8,14 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    print(request.data)
+    print(request.get_json)
     return "Hello, World!"
 
 
 @app.route('/send')
 def send():
-    ret = {
-        "action": "send"
-    }
-    data = request.data
+    ret = {"action": "send"}
+    data = request.get_json()
     print(data)
     if data is None:
         return jsonify(ret), 400
