@@ -14,7 +14,9 @@ int err = 0;
 float relHumidity, temperature;
 int userRegister;
 
+
 void set_sensor()
+
 {
     sht20.softReset();
 
@@ -75,11 +77,13 @@ int main()
     // printf("RSSI: %d\r\n\r\n", wifi.get_rssi());
     set_sensor();
 
+
     while(1){
         measure();
         sendHttp(&wifi);
         wait(5);
     }
+
     wifi.disconnect();
 
     printf("\r\nDone\r\n");
