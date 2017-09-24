@@ -14,17 +14,19 @@ int err = 0;
 float relHumidity, temperature;
 int userRegister;
 
-
-void measure()
+void set_sensor()
 {
-    int err = 0;
-
     sht20.softReset();
 
     printf("Setting user register...\r\n");
     err |= sht20.readUserRegister(&userRegister);  //get actual user reg
     userRegister = (userRegister & ~SHT2x_RES_MASK) | SHT2x_RES_12_14BIT;
     err |= sht20.writeUserRegister(&userRegister); //write changed user reg 
+}
+
+void measure()
+{
+    int err = 0;
     
     printf("Start sensing...\r\n");
     err |= sht20.measureHM(HUMIDITY, &rh);
@@ -50,6 +52,7 @@ void sendHttp(NetworkInterface *network)
     // char body[] = "{\"humidity\":\"\", \"temperature\":}";
     HttpRequest* request = new HttpRequest(network, HTTP_GET, HOST_URL);
     request->set_header("Content-Type", "application/json");
+    printf("Sending request...\r\n");
     HttpResponse* response = request->send(body, strlen(body));
     printf("status is %d - %s\r\n", response->get_status_code(), response->get_status_message());
     printf("body is:\r\n%s\r\n", response->get_body_as_string().c_str());
@@ -70,11 +73,13 @@ int main()
     // printf("Netmask: %s\r\n", wifi.get_netmask());
     // printf("Gateway: %s\r\n", wifi.get_gateway());
     // printf("RSSI: %d\r\n\r\n", wifi.get_rssi());
+    set_sensor();
 
-    measure();
-
-    sendHttp(&wifi);
-
+    while(1){
+        measure();
+        sendHttp(&wifi);
+        wait(5);
+    }
     wifi.disconnect();
 
     printf("\r\nDone\r\n");
