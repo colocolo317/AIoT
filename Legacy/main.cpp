@@ -5,7 +5,7 @@
 
 #define HOST_URL "http://192.168.0.252:8080/send"
 
-MXCHIPInterface wifi(D10,D2);
+//MXCHIPInterface wifi(D10,D2);
 Serial pc(STDIO_UART_TX,STDIO_UART_RX, 115200);
 SHT2x sht20(I2C_SDA, I2C_SCL);
 
@@ -62,14 +62,14 @@ void sendHttp(NetworkInterface *network)
 
 int main()
 {
-    printf("Connecting wifi...\r\n");
-    int ret = wifi.connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD, NSAPI_SECURITY_WPA_WPA2);
-    if (ret != 0) {
-        printf("\r\nConnection error\r\n");
-        return -1;
-    }
+    // printf("Connecting wifi...\r\n");
+    // int ret = wifi.connect(MBED_CONF_APP_WIFI_SSID, MBED_CONF_APP_WIFI_PASSWORD, NSAPI_SECURITY_WPA_WPA2);
+    // if (ret != 0) {
+    //     printf("\r\nConnection error\r\n");
+    //     return -1;
+    // }
 
-    printf("Success\r\n\r\n");
+    // printf("Success\r\n\r\n");
     // printf("MAC: %s\r\n", wifi.get_mac_address());
     // printf("IP: %s\r\n", wifi.get_ip_address());
     // printf("Netmask: %s\r\n", wifi.get_netmask());
@@ -80,11 +80,11 @@ int main()
 
     while(1){
         measure();
-        sendHttp(&wifi);
+        // sendHttp(&wifi);
         wait(5);
     }
 
-    wifi.disconnect();
+    // wifi.disconnect();
 
     printf("\r\nDone\r\n");
 }
