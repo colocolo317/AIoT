@@ -1,8 +1,8 @@
 {
     "config": {
         "wifi-ssid": {
-            "help": "WiFi SSID",
-            "value": "\"SSID\""
+            "help": "WIFI SSID",
+            "value": "\"WIFI SSID\""
         },
         "wifi-password": {
             "help": "WiFi Password",
