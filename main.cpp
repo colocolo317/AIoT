@@ -2,12 +2,15 @@
 #include "MXCHIPInterface.h"
 #include "sht2x.h"
 #include "http_request.h"
+#include "TCA9548A.h"
 
-#define HOST_URL "http://192.168.0.252:8080/send"
+#define HOST_URL "http://192.168.0.248:8080/send"
+#define END_NODE_CNT 2
 
 MXCHIPInterface wifi(D10,D2);
 Serial pc(STDIO_UART_TX,STDIO_UART_RX, 115200);
 SHT2x sht20(I2C_SDA, I2C_SCL);
+TCA9548A i2c_sw(I2C_SDA, I2C_SCL);//default at 0x70 addr
 
 int rh, temp;
 int err = 0;
@@ -75,13 +78,20 @@ int main()
     // printf("Netmask: %s\r\n", wifi.get_netmask());
     // printf("Gateway: %s\r\n", wifi.get_gateway());
     // printf("RSSI: %d\r\n\r\n", wifi.get_rssi());
+	i2c_sw.select(0);
     set_sensor();
-
+	//i2c_sw.select(1);
+	//set_sensor();
 
     while(1){
-        measure();
-        sendHttp(&wifi);
-        wait(5);
+		for(int i=0;i<1;i++){
+			printf("Channel:%d\r\n",i);
+			i2c_sw.select(i);
+			printf("Done setting.\r\n");
+        	measure();
+        	//sendHttp(&wifi);
+        	wait(5);
+		}
     }
 
     wifi.disconnect();
